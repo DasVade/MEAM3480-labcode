@@ -9,8 +9,13 @@
 
 const int LEDPIN = 13;
 const int Source = 7;
-const float UPTHRESHOLD_C = 26.0; 
-const float LOTHRESHOLD_C = 24.0; 
+
+const float T_SET = 96.0;
+const float HYST  = 0.5;          // +/- 0.5C hysteresis band
+const float T_HIGH = T_SET + HYST; // turn OFF above this
+const float T_LOW  = T_SET - HYST; // turn ON below this
+
+static bool heaterOn = false;      // normally OFF, remember previous state
   
 
 int samples[NUMSAMPLES];
@@ -21,8 +26,8 @@ void setup(void) {
   pinMode(LEDPIN, OUTPUT);
   digitalWrite(LEDPIN, LOW);
 
-  pinMode(PIN7, OUTPUT);
-  digitalWrite(PIN7, LOW);
+  pinMode(Source, OUTPUT);
+  digitalWrite(Source, LOW);
 
   // You are using external 3.3V on AREF
   analogReference(EXTERNAL);
@@ -60,14 +65,25 @@ float readTemperatureC() {
 }
 
 void loop(void) {
-
   float tempC = readTemperatureC();
 
- bool ledState = (tempC <= UPTHRESHOLD_C && tempC >= LOTHRESHOLD_C );
-  digitalWrite(LEDPIN, ledState ? HIGH : LOW);
- digitalWrite(PIN7, ledState ? HIGH : LOW);   // follow pin13
+  // Hysteresis control (bang-bang with memory)
+  if (heaterOn && tempC >= T_HIGH) {
+    heaterOn = false;              // too hot -> turn off
+  } else if (!heaterOn && tempC <= T_LOW) {
+    heaterOn = true;               // too cold -> turn on
+  }
+  // else: keep heaterOn as-is
 
-  Serial.println(ledState ? "AUTO: LED ON, PIN7 ON" : "AUTO: LED OFF, PIN7 OFF");
+  digitalWrite(Source, heaterOn ? HIGH : LOW); // pin7 output
+  digitalWrite(LEDPIN, heaterOn ? HIGH : LOW); // LED follows heater
+
+  // CSV-friendly logging: time(s), tempC, heater(0/1)
+  Serial.print(millis() / 1000.0);
+  Serial.print(",");
+  Serial.print(tempC);
+  Serial.print(",");
+  Serial.println(heaterOn ? 1 : 0);
 
   delay(500);
 }
