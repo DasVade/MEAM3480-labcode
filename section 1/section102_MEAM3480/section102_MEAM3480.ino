@@ -11,8 +11,8 @@ const int LEDPIN = 13;
 const int Source = 7;
 
 const float T_SET = 96.0;
-const float HYST  = 0.5;          // +/- 0.5C hysteresis band
-const float T_HIGH = T_SET + HYST; // turn OFF above this
+const float HYST  = 0.8;          // +/- 0.5C hysteresis band
+const float T_HIGH = T_SET - 0.8*HYST; // turn OFF above this
 const float T_LOW  = T_SET - HYST; // turn ON below this
 
 static bool heaterOn = false;      // normally OFF, remember previous state
